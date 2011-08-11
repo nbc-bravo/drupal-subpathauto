@@ -1,7 +1,4 @@
 name = Sub-pathauto
 description = Provides support for extending sub-paths of URL aliases.
 core = 7.x
-files[] = subpathauto.module
-files[] = subpathauto.admin.inc
-files[] = subpathauto.install
-files[] = subpathauto.test
+configure = admin/config/search/path/subpaths
