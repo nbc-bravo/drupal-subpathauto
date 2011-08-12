@@ -1,11 +1,8 @@
 <?php
-// $Id$
 
 /**
  * @file
- * Admin page callbacks for the Subpathauto module.
- *
- * @ingroup pathauto
+ * Admin page callbacks for the subpathauto module.
  */
 
 /**
