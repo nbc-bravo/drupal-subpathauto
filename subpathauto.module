@@ -66,19 +66,22 @@ function subpathauto_lookup_subpath($action, $path = '', $original_path, $path_l
   // Use the advanced drupal_static() pattern, since this is called very often.
   static $drupal_static_fast;
   if (!isset($drupal_static_fast)) {
-    $drupal_static_fast['cache'] = &drupal_static(__FUNCTION__);
+    $drupal_static_fast = &drupal_static(__FUNCTION__, array(
+      //'cache' => NULL,
+      'max_depth' => NULL,
+    ));
   }
-  $cache = &$drupal_static_fast['cache'];
+  //$cache = &$drupal_static_fast['cache'];
 
-  if (!isset($cache)) {
-    $cache = array(
-      'map' => array(),
-    );
-  }
+  //if (!isset($cache)) {
+  //  $cache = array(
+  //    'map' => array(),
+  //  );
+  //}
 
-  if ($action == 'wipe') {
-    $cache = array();
-  }
+  //if ($action == 'wipe') {
+  //  $cache = array();
+  //}
 
   if ($path == '' || $path != $original_path || strpos($path, '/') === FALSE) {
     return FALSE;
@@ -90,7 +93,7 @@ function subpathauto_lookup_subpath($action, $path = '', $original_path, $path_l
     return FALSE;
   }
 
-  static $max_depth;
+  $max_depth = &$drupal_static_fast['max_depth'];
   if (!isset($max_depth)) {
     $max_depth = variable_get('subpathauto_depth', 1);
   }
@@ -104,33 +107,23 @@ function subpathauto_lookup_subpath($action, $path = '', $original_path, $path_l
   // alias matching the URL path.
   $path_language = $path_language ? $path_language : $language_url->language;
 
-  $args = arg(NULL, $path);
-  $depth = min($max_depth, substr_count($path, '/'));
-  //$depth = min($max_depth, count($args));
-  $path_len = drupal_strlen($path);
-  $slash_pos = $path_len;
+  $base_path_parts = explode('/', $path);
+  $depth = min($max_depth, count($base_path_parts) - 1);
 
   // Perform a search for each base path with the right-most segment removed.
-  //$base_paths = array();
+  $path_suffix = array();
   for ($i = 1; $i <= $depth; $i++) {
-    //dpm("$path - $slash_pos");
-    $slash_pos = strrpos($path, '/', $path_len - $slash_pos);
-    $base_path = substr($path, 0, $slash_pos);
-    $sub_path  = substr($path, $slash_pos + 1);
-    //dpm("$path - $slash_pos - $base_path - $sub_path");
-    //$base_path = implode('/', array_slice($args, 0, -$i));
-    //$sub_path = implode('/', array_slice($args, -$i));
-    //$base_paths[$base_path] = $sub_path;
-    if ($action == 'alias') {
-      $aliased_base_path = drupal_get_path_alias($base_path, $path_language);
+    array_unshift($path_suffix, array_pop($base_path_parts));
+    $base_path = implode('/', $base_path_parts);
+
+    if ($action == 'alias' && $aliased_base_path = drupal_lookup_path('alias', $base_path, $path_language)) {
       if ($aliased_base_path != $base_path) {
-        return $aliased_base_path . '/' . $sub_path;
+        return $aliased_base_path . '/' . implode('/', $path_suffix);
       }
     }
-    elseif ($action == 'source') {
-      $sourced_base_path = drupal_get_normal_path($base_path, $path_language);
+    elseif ($action == 'source' && $sourced_base_path = drupal_lookup_path('source', $base_path, $path_language)) {
       if ($sourced_base_path != $base_path) {
-        return $sourced_base_path . '/' . $sub_path;
+        return $sourced_base_path . '/' . implode('/', $path_suffix);
       }
     }
   }
