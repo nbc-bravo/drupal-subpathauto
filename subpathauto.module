@@ -67,26 +67,23 @@ function subpathauto_lookup_subpath($action, $path = '', $original_path, $path_l
   static $drupal_static_fast;
   if (!isset($drupal_static_fast)) {
     $drupal_static_fast = &drupal_static(__FUNCTION__, array(
-      //'cache' => NULL,
       'max_depth' => NULL,
     ));
   }
-  //$cache = &$drupal_static_fast['cache'];
 
-  //if (!isset($cache)) {
-  //  $cache = array(
-  //    'map' => array(),
-  //  );
-  //}
-
-  //if ($action == 'wipe') {
-  //  $cache = array();
-  //}
-
-  if ($path == '' || $path != $original_path || strpos($path, '/') === FALSE) {
+  if ($path == '' || strpos($path, '/') === FALSE) {
+    // If the path is empty or does not contain more than one part, then there
+    // is no sub-path processing to do.
+    return FALSE;
+  }
+  if ($path != $original_path) {
+    // If the $path variable doesn't match $original_path, this means it has
+    // already been matched against an source or alias directly. It should
+    // be skipped from sub-path processing.
     return FALSE;
   }
   if (variable_get('subpathauto_ignore_admin', 1) && path_is_admin($path)) {
+    // Ignore administration paths by default.
     return FALSE;
   }
   if (drupal_match_path($path, "<front>\njs/*")) {
@@ -118,15 +115,28 @@ function subpathauto_lookup_subpath($action, $path = '', $original_path, $path_l
 
     if ($action == 'alias' && $aliased_base_path = drupal_lookup_path('alias', $base_path, $path_language)) {
       if ($aliased_base_path != $base_path) {
-        return $aliased_base_path . '/' . implode('/', $path_suffix);
+        $alias = $aliased_base_path . '/' . implode('/', $path_suffix);
+        //subpathauto_cache_subpath_alias($path, $alias, $path_language);
+        return $alias;
       }
     }
     elseif ($action == 'source' && $sourced_base_path = drupal_lookup_path('source', $base_path, $path_language)) {
       if ($sourced_base_path != $base_path) {
-        return $sourced_base_path . '/' . implode('/', $path_suffix);
+        $source = $sourced_base_path . '/' . implode('/', $path_suffix);
+        //subpathauto_cache_subpath_alias($source, $path, $path_language);
+        return $source;
       }
     }
   }
 
   return FALSE;
+}
+
+/**
+ * Store sub-path aliases into the drupal_lookup_path() static cache.
+ */
+function subpathauto_cache_subpath_alias($source, $alias, $langcode) {
+  $cache = &drupal_static('drupal_lookup_path');
+  $cache['map'][$langcode][$source] = $alias;
+  unset($cache['no_source'][$langcode][$alias]);
 }
