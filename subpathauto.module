@@ -28,8 +28,10 @@ function subpathauto_url_inbound_alter(&$path, $original_path, $language) {
 /**
  * Implements hook_url_outbound_alter().
  */
-function subpathauto_url_outbound_alter(&$path, &$options, $original_path) {
-  if (!empty($options['external'])) {
+function subpathauto_url_outbound_alter(&$path, $options, $original_path) {
+  // If the URL is indicated as external or to be left alone and not aliased,
+  // skip processing.
+  if (!empty($options['external']) || !empty($options['alias'])) {
     return;
   }
 
