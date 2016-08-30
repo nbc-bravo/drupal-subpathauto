@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\subpathauto\Unit\SubPathautoTest.
- */
-
 namespace Drupal\Tests\subpathauto\Unit;
 
 use Drupal\Core\Language\Language;

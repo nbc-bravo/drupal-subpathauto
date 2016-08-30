@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains Drupal\subpathauto\PathProcessor.
- */
-
 namespace Drupal\subpathauto;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
