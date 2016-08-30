@@ -1,11 +1,11 @@
 <?php
 
 /**
-* @file
-* Contains \Drupal\subpathauto\Tests\SubPathautoTest.
-*/
+ * @file
+ * Contains \Drupal\Tests\subpathauto\Unit\SubPathautoTest.
+ */
 
-namespace Drupal\subpathauto\Tests;
+namespace Drupal\Tests\subpathauto\Unit;
 
 use Drupal\Core\Language\Language;
 use Drupal\Tests\UnitTestCase;
@@ -14,6 +14,8 @@ use Drupal\subpathauto\PathProcessor;
 
 /**
  * Unit tests for Sub-Pathauto functionality.
+ *
+ * @group subpathauto
  */
 class SubPathautoTest extends UnitTestCase {
 
