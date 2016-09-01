@@ -27,6 +27,11 @@ class SubPathautoKernelTest extends KernelTestBase {
   protected $aliasStorage;
 
   /**
+   * @var \Drupal\Core\Path\AliasWhitelistInterface
+   */
+  protected $aliasWhiteList;
+
+  /**
    * The service under testing.
    *
    * @var \Drupal\subpathauto\PathProcessor
@@ -52,15 +57,17 @@ class SubPathautoKernelTest extends KernelTestBase {
 
     $this->aliasStorage = $this->container->get('path.alias_storage');
     $this->sut = $this->container->get('path_processor_subpathauto');
+    $this->aliasWhiteList = $this->container->get('path.alias_whitelist');
+
+    Node::create(['type' => 'page', 'title' => 'test'])->save();
+    $this->aliasStorage->save('/node/1', '/kittens');
+    $this->aliasWhiteList->set('node', TRUE);
   }
 
   /**
    * @covers ::processInbound
    */
   public function testProcessInbound() {
-    Node::create(['type' => 'page', 'title' => 'test'])->save();
-    $this->aliasStorage->save('/node/1', '/kittens');
-
     // Alias should not be converted for aliases that are not valid.
     $processed = $this->sut->processInbound('/kittens/are-fake', Request::create('kittens/are-fake'));
     $this->assertEquals('/kittens/are-fake', $processed);
@@ -76,6 +83,26 @@ class SubPathautoKernelTest extends KernelTestBase {
     \Drupal::currentUser()->setAccount($admin_user);
     $processed = $this->sut->processInbound('/kittens/edit', Request::create('kittens/edit'));
     $this->assertEquals('/node/1/edit', $processed);
+  }
+
+  /**
+   * @covers ::processOutbound
+   */
+  public function testProcessOutbound() {
+    // Alias should not be converted for invalid paths.
+    $processed = $this->sut->processOutbound('/kittens/are-fake');
+    $this->assertEquals('/kittens/are-fake', $processed);
+
+    // Alias should be converted even when the user doesn't have permissions to
+    // view the page.
+    $processed = $this->sut->processOutbound('/node/1/edit');
+    $this->assertEquals('/kittens/edit', $processed);
+
+    // Alias should be converted also for user that has access to view the page.
+    $admin_user = $this->createUser();
+    \Drupal::currentUser()->setAccount($admin_user);
+    $processed = $this->sut->processOutbound('/node/1/edit');
+    $this->assertEquals('/kittens/edit', $processed);
   }
 
 }

@@ -10,8 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\subpathauto\PathProcessor;
 
 /**
- * Unit tests for Sub-Pathauto functionality.
- *
+ * @coversDefaultClass \Drupal\subpathauto\PathProcessor
  * @group subpathauto
  */
 class SubPathautoTest extends UnitTestCase {
@@ -87,7 +86,7 @@ class SubPathautoTest extends UnitTestCase {
   }
 
   /**
-   * Tests the basic functionality of the processInbound() method.
+   * @covers ::processInbound
    */
   public function testInboundSubPath() {
     $this->aliasProcessor->expects($this->any())
@@ -113,14 +112,10 @@ class SubPathautoTest extends UnitTestCase {
     // Look up an admin sub-path without disabling sub-paths for admin.
     $processed = $this->sut->processInbound('/malicious-path/modules', Request::create('malicious-path/modules'));
     $this->assertEquals('/admin/modules', $processed);
-
-    // @todo Add tests for the functionality to disallow admin subpaths once it
-    // has been implemented.
   }
 
-
   /**
-   * Tests the basic functionality of the processInbound() method.
+   * @covers ::processInbound
    */
   public function testInboundAlreadyProcessed() {
     // The subpath processor should ignore this and not pass it on to the
@@ -130,11 +125,48 @@ class SubPathautoTest extends UnitTestCase {
   }
 
   /**
-   * Return value callback for the getSystemPath() method on the mock alias manager.
+   * @covers ::processOutbound
+   */
+  public function testOutboundSubPath() {
+    $this->aliasProcessor->expects($this->any())
+      ->method('processOutbound')
+      ->will($this->returnCallback([$this, 'pathAliasCallback']));
+
+    // Look up a subpath of the 'content/first-node' alias.
+    $processed = $this->sut->processOutbound('/content/first-node/a');
+    $this->assertEquals('/node/1/a', $processed);
+
+    // Look up a subpath of the 'content/first-node-test' alias.
+    $processed = $this->sut->processOutbound('/content/first-node-test/a');
+    $this->assertEquals('/node/1/test/a', $processed);
+
+    // Look up an admin sub-path of the 'content/first-node' alias without
+    // disabling sub-paths for admin.
+    $processed = $this->sut->processOutbound('/content/first-node/edit');
+    $this->assertEquals('/node/1/edit', $processed);
+
+    // Look up an admin sub-path without disabling sub-paths for admin.
+    $processed = $this->sut->processOutbound('/malicious-path/modules');
+    $this->assertEquals('/admin/modules', $processed);
+  }
+
+  /**
+   * @covers ::processOutbound
+   */
+  public function testOutboundAbsoluteUrl() {
+    // The subpath processor should ignore this and not pass it on to the
+    // alias processor.
+    $options =  ['absolute' => TRUE];
+    $processed = $this->sut->processOutbound('node/1', $options);
+    $this->assertEquals('node/1', $processed);
+  }
+
+  /**
+   * Return value callback for getSystemPath() method on the mock alias manager.
    *
-   * Ensures that by default the call to getPathAlias() will return the first argument
-   * that was passed in. We special-case the paths for which we wish it to return an
-   * actual alias.
+   * Ensures that by default the call to getPathAlias() will return the first
+   * argument that was passed in. We special-case the paths for which we wish it
+   * to return an actual alias.
    *
    * @return string
    */
