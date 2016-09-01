@@ -2,7 +2,9 @@
 
 namespace Drupal\Tests\subpathauto\Unit;
 
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\subpathauto\PathProcessor;
@@ -30,12 +32,32 @@ class SubPathautoTest extends UnitTestCase {
   protected $languageManager;
 
   /**
+   * @var \Drupal\language\Annotation\LanguageNegotiation|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $languageNegotiation;
+
+  /**
+   * @var \Drupal\Core\Path\PathValidatorInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $pathValidator;
+
+  /**
+   * The container.
+   *
+   * @var \Drupal\Core\DependencyInjection\ContainerBuilder
+   */
+  protected $container;
+
+  /**
    * The service under testing.
    *
    * @var \Drupal\subpathauto\PathProcessor
    */
   protected $sut;
 
+  /**
+   * {@inheritdoc}
+   */
   public function setUp() {
     parent::setUp();
 
@@ -58,7 +80,10 @@ class SubPathautoTest extends UnitTestCase {
       ->method('getCurrentLanguage')
       ->willReturn(new Language());
 
+    $this->pathValidator = $this->getMock('Drupal\Core\Path\PathValidatorInterface');
+
     $this->sut = new PathProcessor($this->aliasProcessor, $this->configFactory, $this->languageManager);
+    $this->sut->setPathValidator($this->pathValidator);
   }
 
   /**
@@ -68,6 +93,9 @@ class SubPathautoTest extends UnitTestCase {
     $this->aliasProcessor->expects($this->any())
       ->method('processInbound')
       ->will($this->returnCallback([$this, 'pathAliasCallback']));
+    $this->pathValidator->expects($this->any())
+      ->method('getUrlIfValidWithoutAccessCheck')
+      ->willReturn(new Url('any_route'));
 
     // Look up a subpath of the 'content/first-node' alias.
     $processed = $this->sut->processInbound('/content/first-node/a', Request::create('content/first-node/a'));
@@ -98,6 +126,7 @@ class SubPathautoTest extends UnitTestCase {
     // The subpath processor should ignore this and not pass it on to the
     // alias processor.
     $processed = $this->sut->processInbound('node/1', Request::create('content/first-node'));
+    $this->assertEquals('node/1', $processed);
   }
 
   /**
