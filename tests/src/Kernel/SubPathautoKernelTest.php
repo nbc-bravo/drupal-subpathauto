@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Tests\subpathauto\Unit;
+namespace Drupal\Tests\subpathauto\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -61,10 +61,14 @@ class SubPathautoKernelTest extends KernelTestBase {
     Node::create(['type' => 'page', 'title' => 'test'])->save();
     $this->aliasStorage->save('/node/1', '/kittens');
 
-    // Alias should not be converted because of anonymous user doesn't have
-    // permissions to edit the node.
+    // Alias should not be converted for aliases that are not valid.
+    $processed = $this->sut->processInbound('/kittens/are-fake', Request::create('kittens/are-fake'));
+    $this->assertEquals('/kittens/are-fake', $processed);
+
+    // Alias should be converted even when the user doesn't have permissions to
+    // view the page.
     $processed = $this->sut->processInbound('/kittens/edit', Request::create('kittens/edit'));
-    $this->assertEquals('/kittens/edit', $processed);
+    $this->assertEquals('/node/1/edit', $processed);
 
     // Alias should be converted because of admin user has access to edit the
     // node.
