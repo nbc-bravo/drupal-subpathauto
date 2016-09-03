@@ -21,19 +21,9 @@ class SubPathautoTest extends UnitTestCase {
   protected $aliasProcessor;
 
   /**
-   * @var \Drupal\Core\Config\ConfigFactoryInterface|\PHPUnit_Framework_MockObject_MockObject
-   */
-  protected $configFactory;
-
-  /**
    * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $languageManager;
-
-  /**
-   * @var \Drupal\language\Annotation\LanguageNegotiation|\PHPUnit_Framework_MockObject_MockObject
-   */
-  protected $languageNegotiation;
 
   /**
    * @var \Drupal\Core\Path\PathValidatorInterface|\PHPUnit_Framework_MockObject_MockObject
@@ -76,24 +66,14 @@ class SubPathautoTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
 
-    $this->languageNegotiation = $this->getMockBuilder('Drupal\language\Annotation\LanguageNegotiation')
-      ->disableOriginalConstructor()
-      ->getMock();
-
-    $this->configFactory = $this->getMock('Drupal\Core\Config\ConfigFactoryInterface');
-    $this->configFactory->expects($this->any())
-      ->method('get')
-      ->with('language.negotiation')
-      ->willReturn($this->languageNegotiation);
-
     $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
     $this->languageManager->expects($this->any())
       ->method('getCurrentLanguage')
-      ->willReturn(new Language());
+      ->willReturn(new Language(Language::$defaultValues));
 
     $this->pathValidator = $this->getMock('Drupal\Core\Path\PathValidatorInterface');
 
-    $this->sut = new PathProcessor($this->aliasProcessor, $this->configFactory, $this->languageManager);
+    $this->sut = new PathProcessor($this->aliasProcessor, $this->languageManager);
     $this->sut->setPathValidator($this->pathValidator);
   }
 
@@ -109,24 +89,29 @@ class SubPathautoTest extends UnitTestCase {
       ->willReturn(new Url('any_route'));
 
     // Look up a subpath of the 'content/first-node' alias.
-    $processed = $this->sut->processInbound('/content/first-node/a', Request::create('content/first-node/a'));
+    $processed = $this->sut->processInbound('/content/first-node/a', Request::create('/content/first-node/a'));
+    $this->assertEquals('/node/1/a', $processed);
+
+    // Look up a subpath of the 'content/first-node' alias when request has
+    // language prefix.
+    $processed = $this->sut->processInbound('/content/first-node/a', Request::create('/en/content/first-node/a'));
     $this->assertEquals('/node/1/a', $processed);
 
     // Look up a multilevel subpath of the '/content/first-node' alias.
-    $processed = $this->sut->processInbound('/content/first-node/kittens/more-kittens', Request::create('content/first-node/kittens/more-kittens'));
+    $processed = $this->sut->processInbound('/content/first-node/kittens/more-kittens', Request::create('/content/first-node/kittens/more-kittens'));
     $this->assertEquals('/node/1/kittens/more-kittens', $processed);
 
     // Look up a subpath of the 'content/first-node-test' alias.
-    $processed = $this->sut->processInbound('/content/first-node-test/a', Request::create('content/first-node-test/a'));
+    $processed = $this->sut->processInbound('/content/first-node-test/a', Request::create('/content/first-node-test/a'));
     $this->assertEquals('/node/1/test/a', $processed);
 
     // Look up an admin sub-path of the 'content/first-node' alias without
     // disabling sub-paths for admin.
-    $processed = $this->sut->processInbound('/content/first-node/edit', Request::create('content/first-node/edit'));
+    $processed = $this->sut->processInbound('/content/first-node/edit', Request::create('/content/first-node/edit'));
     $this->assertEquals('/node/1/edit', $processed);
 
     // Look up an admin sub-path without disabling sub-paths for admin.
-    $processed = $this->sut->processInbound('/malicious-path/modules', Request::create('malicious-path/modules'));
+    $processed = $this->sut->processInbound('/malicious-path/modules', Request::create('/malicious-path/modules'));
     $this->assertEquals('/admin/modules', $processed);
   }
 

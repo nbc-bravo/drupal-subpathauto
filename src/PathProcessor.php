@@ -2,7 +2,7 @@
 
 namespace Drupal\subpathauto;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
@@ -21,13 +21,6 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
    * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface
    */
   protected $pathProcessor;
-
-  /**
-   * The config factory
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
-  protected $configFactory;
 
   /**
    * The language manager.
@@ -55,14 +48,11 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
    *
    * @param \Drupal\Core\PathProcessor\InboundPathProcessorInterface $path_processor
    *   The path processor.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The config factory.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    */
-  public function __construct(InboundPathProcessorInterface $path_processor, ConfigFactoryInterface $config_factory, LanguageManagerInterface $language_manager) {
+  public function __construct(InboundPathProcessorInterface $path_processor, LanguageManagerInterface $language_manager) {
     $this->pathProcessor = $path_processor;
-    $this->configFactory = $config_factory;
     $this->languageManager = $language_manager;
   }
 
@@ -139,21 +129,18 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
    *
    * @param string $path_info
    *   Path that might contain language prefix.
+   *
    * @return string $path info
    *   Path without language prefix.
    */
   protected function getPath($path_info) {
-    // @todo Try to find a better solution. See also RedirectSubscriber checkRedirect().
-    $config = $this->configFactory->get('language.negotiation')->get('url');
-    $langcode = $this->languageManager->getCurrentLanguage()->getId();
-    $language_prefix = $config['prefixes'][$langcode];
-    $path_info = trim($path_info, '/');
-    if ($language_prefix) {
-      $parts = explode('/', $path_info);
-      array_shift($parts);
-      $path_info = implode('/', $parts);
+    $language_prefix = '/' . $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId() . '/';
+
+    if (substr($path_info, 0, strlen($language_prefix)) == $language_prefix) {
+      $path_info = '/' . substr($path_info, strlen($language_prefix));
     }
-    return '/' . $path_info;
+
+    return $path_info;
   }
 
   /**

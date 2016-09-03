@@ -69,19 +69,23 @@ class SubPathautoKernelTest extends KernelTestBase {
    */
   public function testProcessInbound() {
     // Alias should not be converted for aliases that are not valid.
-    $processed = $this->sut->processInbound('/kittens/are-fake', Request::create('kittens/are-fake'));
+    $processed = $this->sut->processInbound('/kittens/are-fake', Request::create('/kittens/are-fake'));
     $this->assertEquals('/kittens/are-fake', $processed);
+
+    // Alias should be converted on a request wih language prefix.
+    $processed = $this->sut->processInbound('/kittens/edit', Request::create('/en/kittens/edit'));
+    $this->assertEquals('/node/1/edit', $processed);
 
     // Alias should be converted even when the user doesn't have permissions to
     // view the page.
-    $processed = $this->sut->processInbound('/kittens/edit', Request::create('kittens/edit'));
+    $processed = $this->sut->processInbound('/kittens/edit', Request::create('/kittens/edit'));
     $this->assertEquals('/node/1/edit', $processed);
 
     // Alias should be converted because of admin user has access to edit the
     // node.
     $admin_user = $this->createUser();
     \Drupal::currentUser()->setAccount($admin_user);
-    $processed = $this->sut->processInbound('/kittens/edit', Request::create('kittens/edit'));
+    $processed = $this->sut->processInbound('/kittens/edit', Request::create('/kittens/edit'));
     $this->assertEquals('/node/1/edit', $processed);
   }
 
