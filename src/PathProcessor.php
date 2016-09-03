@@ -80,14 +80,13 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
 
     $original_path = $path;
     $subpath = array();
-    $path = ltrim($path, '/');
-    while ($path_array = explode('/', $path)) {
+    while ($path_array = explode('/', ltrim($path, '/'))) {
       $subpath[] = array_pop($path_array);
       if (empty($path_array)) {
         break;
       }
-      $path = implode('/', $path_array);
-      $processed_path = $this->pathProcessor->processInbound('/' . $path, $request);
+      $path = '/' . implode('/', $path_array);
+      $processed_path = $this->pathProcessor->processInbound($path, $request);
       if ($processed_path !== $path) {
         $path = $processed_path . '/' . implode('/', array_reverse($subpath));
 
@@ -119,14 +118,13 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
     }
     $original_path = $path;
     $subpath = array();
-    $path = ltrim($path, '/');
-    while ($path_array = explode('/', $path)) {
+    while ($path_array = explode('/', ltrim($path, '/'))) {
       $subpath[] = array_pop($path_array);
       if (empty($path_array)) {
         break;
       }
-      $path = implode('/', $path_array);
-      $processed_path = $this->pathProcessor->processOutbound('/' . $path, $options, $request);
+      $path = '/' . implode('/', $path_array);
+      $processed_path = $this->pathProcessor->processOutbound($path, $options, $request);
       if ($processed_path !== $path) {
         $path = $processed_path . '/' . implode('/', array_reverse($subpath));
         return $path;

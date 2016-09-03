@@ -55,6 +55,18 @@ class SubPathautoTest extends UnitTestCase {
   protected $sut;
 
   /**
+   * List of aliases used in the tests.
+   *
+   * @var string[]
+   */
+  protected $aliases = [
+    '/content/first-node' => '/node/1',
+    '/content/first-node-test' => '/node/1/test',
+    '/malicious-path' => '/admin',
+    '' => '<front>',
+  ];
+
+  /**
    * {@inheritdoc}
    */
   public function setUp() {
@@ -100,6 +112,10 @@ class SubPathautoTest extends UnitTestCase {
     $processed = $this->sut->processInbound('/content/first-node/a', Request::create('content/first-node/a'));
     $this->assertEquals('/node/1/a', $processed);
 
+    // Look up a multilevel subpath of the '/content/first-node' alias.
+    $processed = $this->sut->processInbound('/content/first-node/kittens/more-kittens', Request::create('content/first-node/kittens/more-kittens'));
+    $this->assertEquals('/node/1/kittens/more-kittens', $processed);
+
     // Look up a subpath of the 'content/first-node-test' alias.
     $processed = $this->sut->processInbound('/content/first-node-test/a', Request::create('content/first-node-test/a'));
     $this->assertEquals('/node/1/test/a', $processed);
@@ -130,24 +146,28 @@ class SubPathautoTest extends UnitTestCase {
   public function testOutboundSubPath() {
     $this->aliasProcessor->expects($this->any())
       ->method('processOutbound')
-      ->will($this->returnCallback([$this, 'pathAliasCallback']));
+      ->will($this->returnCallback([$this, 'aliasByPathCallback']));
 
     // Look up a subpath of the 'content/first-node' alias.
-    $processed = $this->sut->processOutbound('/content/first-node/a');
-    $this->assertEquals('/node/1/a', $processed);
+    $processed = $this->sut->processOutbound('/node/1/a');
+    $this->assertEquals('/content/first-node/a', $processed);
+
+    // Look up a multilevel subpath of the '/content/first-node' alias.
+    $processed = $this->sut->processOutbound('/node/1/kittens/more-kittens');
+    $this->assertEquals('/content/first-node/kittens/more-kittens', $processed);
 
     // Look up a subpath of the 'content/first-node-test' alias.
-    $processed = $this->sut->processOutbound('/content/first-node-test/a');
-    $this->assertEquals('/node/1/test/a', $processed);
+    $processed = $this->sut->processOutbound('/node/1/test/a');
+    $this->assertEquals('/content/first-node-test/a', $processed);
 
     // Look up an admin sub-path of the 'content/first-node' alias without
     // disabling sub-paths for admin.
-    $processed = $this->sut->processOutbound('/content/first-node/edit');
-    $this->assertEquals('/node/1/edit', $processed);
+    $processed = $this->sut->processOutbound('/node/1/edit');
+    $this->assertEquals('/content/first-node/edit', $processed);
 
     // Look up an admin sub-path without disabling sub-paths for admin.
-    $processed = $this->sut->processOutbound('/malicious-path/modules');
-    $this->assertEquals('/admin/modules', $processed);
+    $processed = $this->sut->processOutbound('/admin/modules');
+    $this->assertEquals('/malicious-path/modules', $processed);
   }
 
   /**
@@ -156,7 +176,7 @@ class SubPathautoTest extends UnitTestCase {
   public function testOutboundAbsoluteUrl() {
     // The subpath processor should ignore this and not pass it on to the
     // alias processor.
-    $options =  ['absolute' => TRUE];
+    $options = ['absolute' => TRUE];
     $processed = $this->sut->processOutbound('node/1', $options);
     $this->assertEquals('node/1', $processed);
   }
@@ -168,22 +188,26 @@ class SubPathautoTest extends UnitTestCase {
    * argument that was passed in. We special-case the paths for which we wish it
    * to return an actual alias.
    *
+   * @param string $path
+   *   The path.
+   *
    * @return string
    */
-  public function pathAliasCallback() {
-    $args = func_get_args();
-    switch($args[0]) {
-      case '/content/first-node':
-        return '/node/1';
-      case '/content/first-node-test':
-        return '/node/1/test';
-      case '/malicious-path':
-        return '/admin';
-      case '':
-        return '<front>';
-      default:
-        return $args[0];
-    }
+  public function pathAliasCallback($path) {
+    return isset($this->aliases[$path]) ? $this->aliases[$path] : $path;
+  }
+
+  /**
+   * Return value callback for getAliasByPath() method on the alias manager.
+   *
+   * @param string $path
+   *   The path.
+   *
+   * @return string
+   */
+  public function aliasByPathCallback($path) {
+    $aliases = array_flip($this->aliases);
+    return isset($aliases[$path]) ? $aliases[$path] : $path;
   }
 
 }
