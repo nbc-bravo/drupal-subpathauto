@@ -69,7 +69,7 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
     }
 
     $original_path = $path;
-    $subpath = array();
+    $subpath = [];
     while ($path_array = explode('/', ltrim($path, '/'))) {
       $subpath[] = array_pop($path_array);
       if (empty($path_array)) {
@@ -102,12 +102,12 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
   /**
    * {@inheritdoc}
    */
-  public function processOutbound($path, &$options = array(), Request $request = NULL, BubbleableMetadata $bubbleableMetadata = NULL) {
+  public function processOutbound($path, &$options = [], Request $request = NULL, BubbleableMetadata $bubbleableMetadata = NULL) {
     if (isset($options['absolute']) && $options['absolute']) {
       return $path;
     }
     $original_path = $path;
-    $subpath = array();
+    $subpath = [];
     while ($path_array = explode('/', ltrim($path, '/'))) {
       $subpath[] = array_pop($path_array);
       if (empty($path_array)) {
