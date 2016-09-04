@@ -2,6 +2,7 @@
 
 namespace Drupal\subpathauto;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Path\PathValidatorInterface;
@@ -30,6 +31,13 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
   protected $languageManager;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
    * The path validator.
    *
    * @var \Drupal\Core\Path\PathValidatorInterface
@@ -50,10 +58,13 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
    *   The path processor.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
    */
-  public function __construct(InboundPathProcessorInterface $path_processor, LanguageManagerInterface $language_manager) {
+  public function __construct(InboundPathProcessorInterface $path_processor, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory) {
     $this->pathProcessor = $path_processor;
     $this->languageManager = $language_manager;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -69,8 +80,11 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
     }
 
     $original_path = $path;
+    $max_depth = $this->getMaxDepth();
     $subpath = [];
-    while ($path_array = explode('/', ltrim($path, '/'))) {
+    $i = 0;
+    while (($path_array = explode('/', ltrim($path, '/'))) && ($max_depth === 0 || $i < $max_depth)) {
+      $i++;
       $subpath[] = array_pop($path_array);
       if (empty($path_array)) {
         break;
@@ -108,7 +122,10 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
     }
     $original_path = $path;
     $subpath = [];
-    while ($path_array = explode('/', ltrim($path, '/'))) {
+    $max_depth = $this->getMaxDepth();
+    $i = 0;
+    while (($path_array = explode('/', ltrim($path, '/'))) && ($max_depth === 0 || $i < $max_depth)) {
+      $i++;
       $subpath[] = array_pop($path_array);
       if (empty($path_array)) {
         break;
@@ -191,6 +208,15 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
     $this->pathValidator = $path_validator;
 
     return $this;
+  }
+
+  /**
+   * Gets the max depth that subpaths should be scanned through.
+   *
+   * @return int
+   */
+  protected function getMaxDepth() {
+    return $this->configFactory->get('subpathauto.settings')->get('depth');
   }
 
 }

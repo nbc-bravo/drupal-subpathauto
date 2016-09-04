@@ -48,6 +48,8 @@ class SubPathautoKernelTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
 
+    $this->installConfig('subpathauto');
+
     // Create the node bundles required for testing.
     $type = NodeType::create([
       'type' => 'page',

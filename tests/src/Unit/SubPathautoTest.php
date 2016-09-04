@@ -31,11 +31,14 @@ class SubPathautoTest extends UnitTestCase {
   protected $pathValidator;
 
   /**
-   * The container.
-   *
-   * @var \Drupal\Core\DependencyInjection\ContainerBuilder
+   * @var \Drupal\Core\Config\ConfigFactoryInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected $container;
+  protected $configFactory;
+
+  /**
+   * @var \Drupal\Core\Config\ConfigBase|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $subPathautoSettings;
 
   /**
    * The service under testing.
@@ -73,7 +76,15 @@ class SubPathautoTest extends UnitTestCase {
 
     $this->pathValidator = $this->getMock('Drupal\Core\Path\PathValidatorInterface');
 
-    $this->sut = new PathProcessor($this->aliasProcessor, $this->languageManager);
+    $this->subPathautoSettings = $this->getMock('Drupal\Core\Config\ConfigBase');
+
+    $this->configFactory = $this->getMock('Drupal\Core\Config\ConfigFactoryInterface');
+    $this->configFactory->expects($this->any())
+      ->method('get')
+      ->with('subpathauto.settings')
+      ->willReturn($this->subPathautoSettings);
+
+    $this->sut = new PathProcessor($this->aliasProcessor, $this->languageManager, $this->configFactory);
     $this->sut->setPathValidator($this->pathValidator);
   }
 
@@ -87,6 +98,9 @@ class SubPathautoTest extends UnitTestCase {
     $this->pathValidator->expects($this->any())
       ->method('getUrlIfValidWithoutAccessCheck')
       ->willReturn(new Url('any_route'));
+    $this->subPathautoSettings->expects($this->atLeastOnce())
+      ->method('get')
+      ->willReturn(0);
 
     // Look up a subpath of the 'content/first-node' alias.
     $processed = $this->sut->processInbound('/content/first-node/a', Request::create('/content/first-node/a'));
@@ -118,10 +132,34 @@ class SubPathautoTest extends UnitTestCase {
   /**
    * @covers ::processInbound
    */
+  public function testInboundPathProcessorMaxDepth() {
+    $this->pathValidator->expects($this->any())
+      ->method('getUrlIfValidWithoutAccessCheck')
+      ->willReturn(new Url('any_route'));
+    $this->subPathautoSettings->expects($this->exactly(2))
+      ->method('get')
+      ->willReturn(3);
+
+    $this->aliasProcessor->expects($this->any())
+      ->method('processInbound')
+      ->will($this->returnCallback([$this, 'pathAliasCallback']));
+
+    // Subpath shouldn't be processed since the iterations has been limited.
+    $processed = $this->sut->processInbound('/content/first-node/first/second/third/fourth', Request::create('/content/first-node/first/second/third/fourth'));
+    $this->assertEquals('/content/first-node/first/second/third/fourth', $processed);
+
+    // Subpath should be processed when the max depth doesn't exceed.
+    $processed = $this->sut->processInbound('/content/first-node/first/second/third', Request::create('/content/first-node/first/second/third'));
+    $this->assertEquals('/node/1/first/second/third', $processed);
+  }
+
+  /**
+   * @covers ::processInbound
+   */
   public function testInboundAlreadyProcessed() {
     // The subpath processor should ignore this and not pass it on to the
     // alias processor.
-    $processed = $this->sut->processInbound('node/1', Request::create('content/first-node'));
+    $processed = $this->sut->processInbound('node/1', Request::create('/content/first-node'));
     $this->assertEquals('node/1', $processed);
   }
 
@@ -132,6 +170,9 @@ class SubPathautoTest extends UnitTestCase {
     $this->aliasProcessor->expects($this->any())
       ->method('processOutbound')
       ->will($this->returnCallback([$this, 'aliasByPathCallback']));
+    $this->subPathautoSettings->expects($this->atLeastOnce())
+      ->method('get')
+      ->willReturn(0);
 
     // Look up a subpath of the 'content/first-node' alias.
     $processed = $this->sut->processOutbound('/node/1/a');
@@ -153,6 +194,30 @@ class SubPathautoTest extends UnitTestCase {
     // Look up an admin sub-path without disabling sub-paths for admin.
     $processed = $this->sut->processOutbound('/admin/modules');
     $this->assertEquals('/malicious-path/modules', $processed);
+  }
+
+  /**
+   * @covers ::processOutbound
+   */
+  public function testOutboundPathProcessorMaxDepth() {
+    $this->pathValidator->expects($this->any())
+      ->method('getUrlIfValidWithoutAccessCheck')
+      ->willReturn(new Url('any_route'));
+    $this->subPathautoSettings->expects($this->exactly(2))
+      ->method('get')
+      ->willReturn(3);
+
+    $this->aliasProcessor->expects($this->any())
+      ->method('processOutbound')
+      ->will($this->returnCallback([$this, 'aliasByPathCallback']));
+
+    // Subpath shouldn't be processed since the iterations has been limited.
+    $processed = $this->sut->processOutbound('/node/1/first/second/third/fourth');
+    $this->assertEquals('/node/1/first/second/third/fourth', $processed);
+
+    // Subpath should be processed when the max depth doesn't exceed.
+    $processed = $this->sut->processOutbound('/node/1/first/second/third');
+    $this->assertEquals('/content/first-node/first/second/third', $processed);
   }
 
   /**
