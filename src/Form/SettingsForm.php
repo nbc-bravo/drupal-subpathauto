@@ -19,10 +19,10 @@ class SettingsForm extends ConfigFormBase {
 
     $form['depth'] = [
       '#type' => 'select',
-      '#title' => t('Maximum depth of sub-paths to alias'),
-      '#options' => array_merge([0 => t('Disabled')], range(1, MenuTreeStorage::MAX_DEPTH - 1)),
+      '#title' => $this->t('Maximum depth of sub-paths to alias'),
+      '#options' => array_merge([0 => $this->t('Disabled')], range(1, MenuTreeStorage::MAX_DEPTH - 1)),
       '#default_value' => $config->get('depth'),
-      '#description' => t('Increasing this value may decrease performance.'),
+      '#description' => $this->t('Increasing this value may decrease performance.'),
     ];
 
     return parent::buildForm($form, $form_state);
