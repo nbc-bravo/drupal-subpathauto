@@ -197,8 +197,13 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
 
     if ($process_admin_routes == FALSE) {
       $request = Request::create($path);
-      $route_match = \Drupal::service('router.no_access_checks')
-        ->matchRequest($request);
+      try {
+        $route_match = \Drupal::service('router.no_access_checks')
+          ->matchRequest($request);
+      }
+      catch (\Exception $e) {
+        return FALSE;
+      }
       $route = $route_match[RouteObjectInterface::ROUTE_OBJECT];
       $is_admin = \Drupal::service('router.admin_context')
         ->isAdminRoute($route);
