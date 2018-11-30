@@ -9,6 +9,7 @@ use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
 use Drupal\Core\PathProcessor\OutboundPathProcessorInterface;
 use Drupal\Core\Render\BubbleableMetadata;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -117,6 +118,10 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
    * {@inheritdoc}
    */
   public function processOutbound($path, &$options = [], Request $request = NULL, BubbleableMetadata $bubbleableMetadata = NULL) {
+    if ($this->skipRouteProcessing($path)) {
+      return $path;
+    }
+
     $original_path = $path;
     $subpath = [];
     $max_depth = $this->getMaxDepth();
@@ -175,6 +180,32 @@ class PathProcessor implements InboundPathProcessorInterface, OutboundPathProces
     $this->recursiveCall = FALSE;
 
     return $is_valid;
+  }
+
+  /**
+   * Tests if current path should be ignored for sub-path aliasing.
+   *
+   * @param string $path
+   *   The path to be checked.
+   *
+   * @return bool
+   *   TRUE if the path should be skipped, FALSE otherwise.
+   */
+  protected function skipRouteProcessing($path) {
+    $process_admin_routes = $this->configFactory
+      ->get('subpathauto.settings')->get('process_admin_routes');
+
+    if ($process_admin_routes == FALSE) {
+      $request = Request::create($path);
+      $route_match = \Drupal::service('router.no_access_checks')
+                            ->matchRequest($request);
+      $route = $route_match[RouteObjectInterface::ROUTE_OBJECT];
+      $is_admin = \Drupal::service('router.admin_context')
+                         ->isAdminRoute($route);
+      return $is_admin;
+    }
+
+    return FALSE;
   }
 
   /**
