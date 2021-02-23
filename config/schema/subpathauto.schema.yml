@@ -5,3 +5,6 @@ subpathauto.settings:
     depth:
       type: integer
       label: 'Maximum depth of sub-paths to alias'
+    process_admin_routes:
+      type: boolean
+      label: 'Apply sub-paths aliasing on admin routes as well'

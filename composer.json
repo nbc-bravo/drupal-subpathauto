@@ -1,0 +1,18 @@
+{
+  "name": "drupal/subpathauto",
+  "description": "Allows to match sub-paths and replace them with the appropriate alias from pathauto",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/subpathauto",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/subpathauto",
+    "irc": "irc://irc.freenode.org/drupal-contribute",
+    "source": "https://cgit.drupalcode.org/subpathauto"
+  },
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require-dev": {
+    "drupal/coder": "^8.2",
+    "phpmd/phpmd": "dev-master",
+    "phpmetrics/phpmetrics": "dev-master"
+  }
+}
