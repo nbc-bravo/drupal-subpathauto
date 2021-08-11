@@ -25,6 +25,13 @@ class SettingsForm extends ConfigFormBase {
       '#description' => $this->t('Increasing this value may decrease performance.'),
     ];
 
+    $form['process_admin_routes'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Apply sub-paths aliases to admin routes.'),
+      '#default_value' => $config->get('process_admin_routes'),
+      '#description' => $this->t('This will enable routes like node/[id]/edit to also be altered.'),
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -34,8 +41,9 @@ class SettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $this->config('subpathauto.settings')
-      ->set('depth', $values['depth'])
-      ->save();
+         ->set('depth', $values['depth'])
+         ->set('process_admin_routes', $values['process_admin_routes'])
+         ->save();
 
     parent::submitForm($form, $form_state);
   }
